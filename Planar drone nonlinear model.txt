@@ -1,0 +1,97 @@
+close all 
+clc; clear;
+r=0.25; m=0.25; I=(m*r^2)/6; g=9.81; h=0.001;
+A=[0 1 0 0 0 0;0 0 0 0 -g 0; 0 0 0 1 0 0;0 0 0 0 0 0;0 0 0 0 0 1;0 0 0 0 0 0];
+B=[0 0; 0 0;0 0; 1/m 0; 0 0; 0 r/I];
+Bd=[0;0;0;1;0;0];
+C=[1 0 0 0 0 0
+   0 0 1 0 0 0];
+uo=[1;0]*m*g;
+p1=-2;
+p2=-1;
+p3=-5-10*i;
+p4=-5+10*i;
+p5=-5+10*i;
+p6=-5-10*i;
+p=[p1,p2,p3,p4,p5,p6];
+Kf=place(A,B,p);
+L=place(A',C',p)';
+%system dynamics initial conditios
+x1_k0=0.01;x2_k0=0; x3_k0=0 ;x4_k0=0;x5_k0=0; x6_k0=0;
+x_k0=[x1_k0;x2_k0;x3_k0;x4_k0;x5_k0;x6_k0];
+x1_hat_k0=0.01;x2_hat_k0=0; x3_hat_k0=0 ;x4_hat_k0=0; x5_hat_k0=0;x6_hat_k0=0;
+x_hat_k0=[x1_hat_k0;x2_hat_k0;x3_hat_k0;x4_hat_k0;x5_hat_k0;x6_hat_k0];
+for i=0:h:40
+%State observer with measures states
+%     u=-Kf*x_k0 + uo;
+%controller with full state observer
+      u=-Kf*x_hat_k0 + uo;
+%state Estimator dynamics
+    x_hat_k1=x_hat_k0 + h*(A*x_hat_k0 + B*u -g*Bd + L*C*(x_k0 - x_hat_k0));
+%Nonlinear System dynamics
+    x1_k1=x1_k0 + h*x2_k0;
+    x2_k1=x2_k0 + h*(-g*sin(x5_k0));
+    x3_k1=x3_k0 + h*x4_k0;
+    x4_k1=x4_k0 + h*(-g*cos(x5_k0) + u(1)/m);
+    x5_k1=x5_k0 + h*x6_k0;
+    x6_k1=x6_k0 + h*r*u(2)/I;
+%Data storing
+ind=round((1 + (i*(1/h))));
+data.t(ind)=i;
+%Storing State values
+    data.x1(ind)=x1_k1;
+    data.x2(ind)=x2_k1;
+    data.x3(ind)=x3_k1;
+    data.x4(ind)=x4_k1;
+    data.x5(ind)=x5_k1;
+    data.x6(ind)=x6_k1;
+%storing Estimated states
+    data.x1_hat(ind)=x_hat_k1(1);
+    data.x2_hat(ind)=x_hat_k1(2);
+    data.x3_hat(ind)=x_hat_k1(3);
+    data.x4_hat(ind)=x_hat_k1(4);
+    data.x5_hat(ind)=x_hat_k1(5);
+    data.x6_hat(ind)=x_hat_k1(6);
+%Value swapping 
+    x1_k0=x1_k1;
+    x2_k0=x2_k1;
+    x3_k0=x3_k1;
+    x4_k0=x4_k1;
+    x5_k0=x5_k1;
+    x6_k0=x6_k1;
+    x_hat_k0=x_hat_k1;
+    x_k0=[x1_k0;x2_k0;x3_k0;x4_k0;x5_k0;x6_k0];
+end
+figure('Color','white','Name','system response','NumberTitle','off');
+%  plot(data.t,[data.x1;data.x3;data.x5])
+ plot(data.t,data.x1,'r',data.t,data.x3,'b',data.t,data.x5,'k--')
+ title('system response')
+ xlabel('time (sec)')
+ ylabel('magnitude')
+ legend('x position','y position', 'pitch angle')
+ % estimated states vs actual states
+ figure('Color','white','Name','Estimator Analysis','NumberTitle','off');
+ subplot(3,2,1)
+ plot(data.t,[data.x1;data.x1_hat])
+ title('x position')
+ legend('x','x_hat')
+ subplot(3,2,2)
+ plot(data.t,[data.x2;data.x2_hat])
+ title('velocity in x direction')
+ legend('v_x','v_x_hat')
+ subplot(3,2,3)
+ plot(data.t,[data.x3;data.x3_hat])
+ title('y position')
+ legend('y','y_hat')
+ subplot(3,2,4)
+ plot(data.t,[data.x4;data.x4_hat])
+ title('velocity in y direction')
+ legend('v_y','v_y_hat')
+ subplot(3,2,5)
+ plot(data.t,[data.x5;data.x5_hat])
+ title('pitch angle')
+ legend('theta','theta_hat')
+ subplot(3,2,6)
+ plot(data.t,[data.x6;data.x6_hat])
+ title('angular velocity')
+ legend('w','w_hat')

@@ -1,0 +1,58 @@
+close all 
+clc; clear;
+K1=1
+Ti1=0.05
+Td1=0.05
+K2=100
+Ti2=0.5
+Td2=0.5
+r=0.25; m=0.25; I=(m*r^2)/6; g=9.81; h=0.0001;
+A=[0 1 0 0 0 0;0 0 0 0 -g 0; 0 0 0 1 0 0;0 0 0 0 0 0;0 0 0 0 0 1;0 0 0 0 0 0];
+B=[0 0; 0 0;0 0; 1/m 0; 0 0; 0 r/I];
+Bd=[0;0;0;1;0;0]
+C=[1 0 0 0 0 0
+   0 0 1 0 0 0];
+D=zeros(2,2);
+sys=ss(A,B,C,D);
+G=tf(sys)
+uo=1*[1;0]*m*g ;
+%system dynamics initial conditions
+    x1_k0=0.01;x2_k0=0; x3_k0=0 ;x4_k0=0;x5_k0=0; x6_k0=0;
+    x_k0=[x1_k0;x2_k0;x3_k0;x4_k0;x5_k0;x6_k0];
+    x1_hat_k0=0.01;x2_hat_k0=0; x3_hat_k0=0 ;x4_hat_k0=0; x5_hat_k0=0;x6_hat_k0=0;
+    x_hat_k0=[x1_hat_k0;x2_hat_k0;x3_hat_k0;x4_hat_k0;x5_hat_k0;x6_hat_k0];
+    e1_k1=0;e1_k0=0;e1_k00=0;
+    e2_k1=0;e2_k0=0;e2_k00=0;
+    u1_k0=0; u2_k0=0;
+for i=0:h:40
+%PID controller 
+    u1_k1=u1_k0 + K1*((1+ (h/Ti1) + Td1/h)*e1_k1 - (1+2*(Td1/h))*e1_k0 + (Td1/h)*e1_k00);
+    u2_k1=u2_k0 + K2*((1+ (h/Ti2) + Td2/h)*e2_k1 - (1+2*(Td2/h))*e2_k0 + (Td2/h)*e2_k00);
+    u=[u1_k1;u2_k1]+ uo;
+%system Dynamics
+    x_k1=x_k0 + h*(A*x_k0 + B*u - g*Bd);
+%Data Storing
+    ind=round((1 + (i*(1/h))));
+    data.t(ind)=i;
+%Storing states
+    data.x1(ind)=x_k1(1);
+    data.x2(ind)=x_k1(2);
+    data.x3(ind)=x_k1(3);
+    data.x4(ind)=x_k1(4);
+    data.x5(ind)=x_k1(5);
+    data.x6(ind)=x_k1(6);
+    e1_k1=x_k1(1)-x_k0(1);
+    e2_k1=x_k1(3)-x_k0(3);
+%Value swapping 
+    x_k0=x_k1;
+    e1_k00=e1_k0;
+    e1_k0=e1_k1;
+    e2_k00=e2_k0;
+    e2_k0=e2_k1;
+end
+figure('Color','white','Name','system response','NumberTitle','off');
+     plot(data.t,data.x1,'r',data.t,data.x3,'b',data.t,data.x5,'k--')
+     title('system response')
+     xlabel('time (sec)')
+     ylabel('magnitude')
+     legend('x position','y position', 'pitch angle')
